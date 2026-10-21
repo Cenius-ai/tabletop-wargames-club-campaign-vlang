@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Sign in{% endblock %}
+{% block content %}
+<div class="auth">
+  <section class="auth-card" aria-labelledby="login-title">
+    <div>
+      <p class="eyebrow">{{ club_name }}</p>
+      <h1 id="login-title">Sign in to the campaign</h1>
+      <p class="lede">Army lists, territory claims and club-night tables — everything the club runs on, in one place.</p>
+    </div>
+    {% if errors.form %}
+    <div class="alert alert--error" role="alert">{{ errors.form }}</div>
+    {% endif %}
+    <form method="post" action="/login" class="form" data-busy data-busy-label="Signing in…">
+      <input type="hidden" name="next" value="{{ next_path }}">
+      <div class="field{% if errors.email %} field--invalid{% endif %}">
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" value="{{ values.email }}" autocomplete="username"
+               placeholder="rowan@ironvale.club" required
+               {% if errors.email %}aria-invalid="true" aria-describedby="email-error"{% endif %}>
+        {% if errors.email %}<p class="field-error" id="email-error">{{ errors.email }}</p>{% endif %}
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <div class="input-row">
+          <input id="password" name="password" type="password" autocomplete="current-password" required>
+          <button class="btn btn-quiet" type="button" data-password-toggle
+                  aria-controls="password" aria-pressed="false">Show</button>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-block" type="submit" id="login-submit">Sign in</button>
+    </form>
+    <p class="auth-alt">New to the club? <a href="/register">Create an account</a></p>
+  </section>
+
+  <section class="demo-card" aria-labelledby="demo-title">
+    <h2 id="demo-title">Demo accounts</h2>
+    <p class="demo-hint">Demo: cenius@cenius.ai / cenius</p>
+    <div class="demo-row">
+      <span class="demo-cred"><strong>cenius@cenius.ai</strong> · cenius · Organiser</span>
+      <form method="post" action="/login" class="inline-form" data-busy data-busy-label="Signing in…">
+        <input type="hidden" name="demo_email" value="cenius@cenius.ai">
+        <input type="hidden" name="demo_password" value="cenius">
+        <button class="btn btn-sm" type="submit">Use organiser</button>
+      </form>
+    </div>
+    <div class="demo-row">
+      <span class="demo-cred"><strong>rowan@ironvale.club</strong> · wargames · Member, Ironvale</span>
+      <form method="post" action="/login" class="inline-form" data-busy data-busy-label="Signing in…">
+        <input type="hidden" name="demo_email" value="rowan@ironvale.club">
+        <input type="hidden" name="demo_password" value="wargames">
+        <button class="btn btn-sm" type="submit">Use member</button>
+      </form>
+    </div>
+    <div class="demo-row">
+      <span class="demo-cred"><strong>marek@ashenchoir.club</strong> · wargames · Member, Ashen Choir</span>
+      <form method="post" action="/login" class="inline-form" data-busy data-busy-label="Signing in…">
+        <input type="hidden" name="demo_email" value="marek@ashenchoir.club">
+        <input type="hidden" name="demo_password" value="wargames">
+        <button class="btn btn-sm" type="submit">Use member</button>
+      </form>
+    </div>
+    <p class="field-hint">Demo accounts are for preview and evaluation — remove them before a production deploy.</p>
+  </section>
+</div>
+{% endblock %}

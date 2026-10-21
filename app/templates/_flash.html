@@ -1,0 +1,6 @@
+{% if flash %}
+<div class="flash{% if flash.kind == 'error' %} flash--error{% endif %}" role="status">
+  <span>{{ flash.message }}</span>
+  <button class="flash-close" type="button" aria-label="Dismiss message" data-dismiss>×</button>
+</div>
+{% endif %}

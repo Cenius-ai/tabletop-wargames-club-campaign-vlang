@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="auth">
+  <section class="error-card" aria-labelledby="error-title">
+    <p class="error-status">{{ status }}</p>
+    <h1 id="error-title">{{ title }}</h1>
+    <p class="lede">{{ message }}</p>
+    <div class="page-head-actions">
+      {% if user %}
+      <a class="btn btn-primary" href="/">Back to the dashboard</a>
+      <a class="btn" href="/campaign">Campaign map</a>
+      {% else %}
+      <a class="btn btn-primary" href="/login">Go to sign in</a>
+      <a class="btn" href="/register">Create an account</a>
+      {% endif %}
+    </div>
+  </section>
+</div>
+{% endblock %}

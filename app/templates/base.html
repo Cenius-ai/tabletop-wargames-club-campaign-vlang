@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Dashboard{% endblock %} · {{ app_name }}</title>
+  <meta name="description" content="Army lists, campaign territory control and club-night table bookings for the {{ club_name }}.">
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="stylesheet" href="/static/app.css">
+  <link rel="stylesheet" href="/static/views.css">
+  <link rel="stylesheet" href="/static/components.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+{% if user %}
+{% set path = request.url.path %}
+<div class="shell">
+  <aside class="rail">
+    <a class="brand" href="/">
+      <span class="brand-mark" aria-hidden="true">HG</span>
+      <span class="brand-text">
+        <strong>{{ club_short }}</strong>
+        <span>Campaign tracker</span>
+      </span>
+    </a>
+    <nav class="rail-nav" aria-label="Main">
+      <a href="/" {% if path == '/' %}aria-current="page"{% endif %}>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        <span>Dashboard</span>
+      </a>
+      <a href="/army-lists" {% if path.startswith('/army-lists') %}aria-current="page"{% endif %}>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg>
+        <span>Army lists</span>
+      </a>
+      <a href="/campaign" {% if path == '/campaign' %}aria-current="page"{% endif %}>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/></svg>
+        <span>Campaign map</span>
+      </a>
+      <a href="/club-nights" {% if path == '/club-nights' %}aria-current="page"{% endif %}>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 11h18"/></svg>
+        <span>Club nights</span>
+      </a>
+    </nav>
+    <div class="rail-user">
+      <span class="avatar" aria-hidden="true">{{ user.display_name|initials }}</span>
+      <span class="rail-user-text">
+        <strong>{{ user.display_name }}</strong>
+        <span>{% if user.role == 'organiser' %}Organiser{% else %}Member{% endif %}{% if user.faction_name %} · {{ user.faction_name }}{% endif %}</span>
+      </span>
+    </div>
+    <form method="post" action="/logout" class="logout-form" data-busy data-busy-label="Signing out…">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button class="btn btn-ghost btn-block" type="submit">Log out</button>
+    </form>
+  </aside>
+  <div class="stage">
+    <div class="keyline" aria-hidden="true"></div>
+    <main id="main" class="main">
+      {% include "_flash.html" %}
+      {% block content %}{% endblock %}
+    </main>
+    <div class="keyline" aria-hidden="true"></div>
+    <footer class="footer">
+      <p>{{ club_name }} — campaign season of the Hollow Gate.</p>
+      <p>Club nights every other Thursday · The Old Library</p>
+    </footer>
+  </div>
+</div>
+{% else %}
+<div class="anon">
+  <div class="anon-head">
+    <a class="brand" href="/login">
+      <span class="brand-mark" aria-hidden="true">HG</span>
+      <span class="brand-text">
+        <strong>{{ club_short }}</strong>
+        <span>Campaign tracker</span>
+      </span>
+    </a>
+  </div>
+  <main id="main" class="anon-main">
+    {% include "_flash.html" %}
+    {{ self.content() }}
+  </main>
+  <footer class="anon-foot">{{ club_name }} · army lists, campaign map and club-night tables</footer>
+</div>
+{% endif %}
+</body>
+</html>

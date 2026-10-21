@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Create an account{% endblock %}
+{% block content %}
+<div class="auth">
+  <section class="auth-card" aria-labelledby="register-title">
+    <div>
+      <p class="eyebrow">{{ club_name }}</p>
+      <h1 id="register-title">Join the campaign</h1>
+      <p class="lede">Pick the faction you are fighting for this season. You can build army lists for any faction later.</p>
+    </div>
+    {% if errors %}
+    <div class="alert alert--error" role="alert">
+      {% for field, message in errors.items() %}{{ message }}{% if not loop.last %} {% endif %}{% endfor %}
+    </div>
+    {% endif %}
+    {% if club_is_new %}
+    <div class="alert alert--warn">The club has no accounts yet — the first account becomes the organiser.</div>
+    {% endif %}
+    <form method="post" action="/register" class="form" data-busy data-busy-label="Creating account…">
+      <div class="field{% if errors.display_name %} field--invalid{% endif %}">
+        <label for="display_name">Display name</label>
+        <input id="display_name" name="display_name" type="text" value="{{ values.display_name }}"
+               autocomplete="name" maxlength="60" placeholder="Rowan Ashby" required
+               {% if errors.display_name %}aria-invalid="true" aria-describedby="display-name-error"{% endif %}>
+        <p class="field-hint">This is how your name appears on army lists and the map.</p>
+        {% if errors.display_name %}<p class="field-error" id="display-name-error">{{ errors.display_name }}</p>{% endif %}
+      </div>
+      <div class="field{% if errors.email %} field--invalid{% endif %}">
+        <label for="reg-email">Email</label>
+        <input id="reg-email" name="email" type="email" value="{{ values.email }}" autocomplete="email"
+               placeholder="rowan@ironvale.club" required
+               {% if errors.email %}aria-invalid="true" aria-describedby="reg-email-error"{% endif %}>
+        {% if errors.email %}<p class="field-error" id="reg-email-error">{{ errors.email }}</p>{% endif %}
+      </div>
+      <div class="field{% if errors.password %} field--invalid{% endif %}">
+        <label for="reg-password">Password</label>
+        <div class="input-row">
+          <input id="reg-password" name="password" type="password" autocomplete="new-password"
+                 minlength="8" required
+                 {% if errors.password %}aria-invalid="true" aria-describedby="reg-password-error"{% endif %}>
+          <button class="btn btn-quiet" type="button" data-password-toggle
+                  aria-controls="reg-password" aria-pressed="false">Show</button>
+        </div>
+        <p class="field-hint">At least 8 characters.</p>
+        {% if errors.password %}<p class="field-error" id="reg-password-error">{{ errors.password }}</p>{% endif %}
+      </div>
+      <div class="field{% if errors.faction %} field--invalid{% endif %}">
+        <label for="faction">Faction</label>
+        <select id="faction" name="faction" required>
+          {% for faction in factions %}
+          <option value="{{ faction.slug }}" {% if values.faction == faction.slug %}selected{% endif %}>{{ faction.name }}</option>
+          {% endfor %}
+        </select>
+        {% if errors.faction %}<p class="field-error">{{ errors.faction }}</p>{% endif %}
+      </div>
+      <button class="btn btn-primary btn-block" type="submit">Create account</button>
+    </form>
+    <p class="auth-alt">Already a member? <a href="/login">Sign in</a></p>
+  </section>
+</div>
+{% endblock %}

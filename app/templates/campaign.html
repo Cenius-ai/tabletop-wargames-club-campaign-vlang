@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% block title %}Campaign map{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div class="page-head-text">
+    <p class="eyebrow">Season of the Hollow Gate</p>
+    <h1>Campaign map</h1>
+    <p class="lede">24 territories across the Hollow Gate. Claim undefended ground for your faction; the organiser arbitrates anything contested.</p>
+  </div>
+  <div class="page-head-actions">
+    <a class="btn" href="/club-nights">Club nights</a>
+    <a class="btn" href="/army-lists">Army lists</a>
+  </div>
+</header>
+
+{% if errors.form %}
+<div class="alert alert--error" role="alert">{{ errors.form }}</div>
+{% endif %}
+
+<section class="legend-strip stagger" aria-label="Territory control by faction">
+  {% for faction in standings %}
+  <div class="legend-card fc-{{ faction.slug }}">
+    <span class="stat-label">{{ faction.name }}</span>
+    <span class="stat-value">{{ faction.held }}</span>
+    <span class="stat-meta">{{ faction.motto }}</span>
+  </div>
+  {% endfor %}
+  <div class="legend-card legend-card--none">
+    <span class="stat-label">Undefended</span>
+    <span class="stat-value">{{ undefended_count }}</span>
+    <span class="stat-meta">claimable territories</span>
+  </div>
+</section>
+
+<section class="panel panel--flush" aria-labelledby="map-title">
+  <div class="panel-head">
+    <div>
+      <h2 id="map-title">Territory grid</h2>
+      <p class="panel-hint">{{ held_count }} held · {{ undefended_count }} undefended. Tiles are laid out west to east, north to south.</p>
+    </div>
+    {% if undefended_count == 0 %}
+    <span class="chip chip--none">Map fully claimed</span>
+    {% else %}
+    <span class="chip">{{ undefended_count }} open to claim</span>
+    {% endif %}
+  </div>
+  {% if undefended_count == 0 %}
+  <p class="lede">The map is fully claimed — ask the organiser to arbitrate any territory that changes hands.</p>
+  {% endif %}
+  <div class="map" role="list" aria-label="Campaign territories">
+    {% for tile in territories %}
+    <article class="tile{% if tile.faction_slug %} tile--held fc-{{ tile.faction_slug }}{% else %} tile--open{% endif %}"
+             role="listitem" aria-label="{{ tile.name }}">
+      <p class="tile-coord">{{ "ABCDEFGH"[tile.x] }}{{ tile.y + 1 }}</p>
+      <h3 class="tile-name">{{ tile.name }}</h3>
+      <p class="tile-owner">{% if tile.faction_slug %}{{ tile.faction_name }}{% else %}Undefended{% endif %}</p>
+      {% if tile.claimant_name %}
+      <p class="tile-meta">{{ tile.claimant_name }} · {{ tile.claimed_at|clock }}</p>
+      {% elif tile.claimed_at %}
+      <p class="tile-meta">Arbitrated {{ tile.claimed_at|clock }}</p>
+      {% endif %}
+      {% if not tile.faction_slug %}
+      <form method="post" action="/campaign/territories/{{ tile.id }}/claim" class="tile-claim"
+            data-busy data-busy-label="Claiming…">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button class="btn btn-primary" type="submit">Claim</button>
+      </form>
+      {% endif %}
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+<div class="grid-2">
+  <section class="panel" aria-labelledby="recent-title">
+    <div class="panel-head">
+      <div>
+        <h2 id="recent-title">Recent claims</h2>
+        <p class="panel-hint">The last six territories to change hands.</p>
+      </div>
+    </div>
+    {% if recent_claims %}
+    <ul class="claim-list">
+      {% for tile in recent_claims %}
+      <li>
+        <span class="claim-name">{{ tile.name }}</span>
+        <span class="claim-meta">
+          {% if tile.faction_slug %}{{ tile.faction_name }}{% else %}Undefended{% endif %}
+          {% if tile.claimant_name %} · {{ tile.claimant_name }}{% endif %}
+          · {{ tile.claimed_at|clock }}
+        </span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <div class="empty-state">
+      <p class="empty-title">No territory claimed yet</p>
+      <p class="empty-copy">The whole map is undefended. Claim the first territory for your faction.</p>
+    </div>
+    {% endif %}
+  </section>
+
+  <section class="panel" aria-labelledby="rules-title">
+    <div class="panel-head">
+      <div>
+        <h2 id="rules-title">Claiming rules</h2>
+        <p class="panel-hint">How the campaign map is kept honest.</p>
+      </div>
+    </div>
+    <ol class="steps">
+      <li>Any member may claim a territory that reads <strong>Undefended</strong>. It takes your faction colour instantly.</li>
+      <li>A territory already held by another faction cannot be claimed — the tile shows who holds it.</li>
+      <li>The organiser can reassign any territory to another faction, or clear it back to undefended, from the arbitration table below.</li>
+    </ol>
+    {% if not is_organiser %}
+    <p class="panel-hint">Arbitration is organiser-only. Ask Cenius if a result needs recording.</p>
+    {% endif %}
+  </section>
+</div>
+
+{% if is_organiser %}
+<section class="panel" aria-labelledby="arbitration-title">
+  <div class="panel-head">
+    <div>
+      <h2 id="arbitration-title">Organiser arbitration</h2>
+      <p class="panel-hint">Set any territory to a faction, or clear it back to undefended.</p>
+    </div>
+    <span class="chip chip--role">Organiser only</span>
+  </div>
+  <div class="table-wrap">
+    <table class="table table--compact">
+      <thead>
+        <tr>
+          <th scope="col">Territory</th>
+          <th scope="col">Controller</th>
+          <th scope="col">Claimed by</th>
+          <th scope="col" class="col-actions">Assign</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for tile in territories %}
+        <tr>
+          <td>{{ tile.name }}</td>
+          <td>
+            {% if tile.faction_slug %}
+            <span class="chip fc-{{ tile.faction_slug }}">{{ tile.faction_name }}</span>
+            {% else %}
+            <span class="chip chip--none">Undefended</span>
+            {% endif %}
+          </td>
+          <td class="meta">{{ tile.claimant_name or '—' }}</td>
+          <td class="col-actions">
+            <form method="post" action="/campaign/territories/{{ tile.id }}/assign" class="inline-form"
+                  data-busy data-busy-label="Saving…">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+              <label class="sr-only" for="assign-{{ tile.id }}">Faction for {{ tile.name }}</label>
+              <select id="assign-{{ tile.id }}" name="faction">
+                <option value="">— Undefended —</option>
+                {% for faction in factions %}
+                <option value="{{ faction.slug }}" {% if tile.faction_slug == faction.slug %}selected{% endif %}>{{ faction.name }}</option>
+                {% endfor %}
+              </select>
+              <button class="btn btn-sm" type="submit">Set</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

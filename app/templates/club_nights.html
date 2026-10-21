@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}Club nights{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div class="page-head-text">
+    <p class="eyebrow">Club nights</p>
+    <h1>Book a table</h1>
+    <p class="lede">{{ nights|length }} upcoming evening{{ '' if nights|length == 1 else 's' }} at The Old Library. Six tables a night — reserve one and attach the army list you are bringing.</p>
+  </div>
+  <div class="page-head-actions">
+    {% if selected %}<a class="btn btn-primary" href="#book">Book a table</a>{% endif %}
+    <a class="btn" href="/campaign">Campaign map</a>
+  </div>
+</header>
+
+{% if errors.form %}
+<div class="alert alert--error" role="alert">{{ errors.form }}</div>
+{% endif %}
+
+<div class="panes">
+  <aside class="pane pane-list" aria-label="Upcoming club nights">
+    <h2 class="pane-title"><span>Upcoming nights</span><span>{{ nights|length }}</span></h2>
+    <ul class="night-list">
+      {% for night in nights %}
+      <li>
+        <a class="night-link{% if selected and night.id == selected.id %} is-selected{% endif %}"
+           href="/club-nights?night={{ night.id }}"
+           {% if selected and night.id == selected.id %}aria-current="page"{% endif %}>
+          <span class="night-date">{{ night.date|short_date }}</span>
+          <span class="night-title">{{ night.title }}</span>
+          <span class="night-meta">{{ night.location }}</span>
+          <span class="night-meta">{{ night.table_count - night.booked_count }} of {{ night.table_count }} tables free</span>
+        </a>
+      </li>
+      {% else %}
+      <li>
+        <div class="empty-state">
+          <p class="empty-title">No club nights scheduled yet</p>
+          <p class="empty-copy">The organiser publishes the next block of club nights after each season finale.</p>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% if my_booking %}
+    <div class="pane-block">
+      <h3>Your table</h3>
+      <p class="list-meta">{{ my_booking.label }} on {{ selected.date|short_date }}{% if my_booking.army_list_name %} · {{ my_booking.army_list_name }}{% endif %}</p>
+    </div>
+    {% endif %}
+  </aside>
+
+  <section class="pane pane-detail">
+    {% if selected %}
+    <section class="panel panel--flush" aria-labelledby="night-title">
+      <div class="panel-head">
+        <div>
+          <p class="eyebrow">{{ selected.date|long_date }}</p>
+          <h2 id="night-title">{{ selected.title }}</h2>
+          <p class="panel-hint">{{ selected.location }}{% if selected.notes %} — {{ selected.notes }}{% endif %}</p>
+        </div>
+        <span class="chip">{{ selected.booked_count }} of {{ selected.table_count }} booked</span>
+      </div>
+      <div class="table-grid stagger">
+        {% for table in tables %}
+        <article class="table-card{% if table.booking_id %} is-booked{% endif %}{% if table.booked_user_id == user.id %} is-mine{% endif %}">
+          <p class="table-label">{{ table.label }}</p>
+          <p class="table-state">{{ 'Booked' if table.booking_id else 'Free' }}</p>
+          <p class="table-meta">Seats {{ table.capacity }}</p>
+          {% if table.booking_id %}
+          <p class="table-holder">{{ table.booked_by or 'Club member' }}{% if table.army_list_name %} · {{ table.army_list_name }}{% endif %}</p>
+          {% if table.booking_notes %}<p class="table-meta">{{ table.booking_notes }}</p>{% endif %}
+          {% if table.booked_user_id == user.id or is_organiser %}
+          <form method="post" action="/bookings/{{ table.booking_id }}/cancel" class="inline-form"
+                data-busy data-busy-label="Cancelling…">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <input type="hidden" name="return_to" value="/club-nights?night={{ selected.id }}">
+            <button class="btn btn-quiet btn-sm" type="submit"
+                    aria-label="Cancel booking for {{ table.label }} on {{ selected.date|short_date }}">Cancel</button>
+          </form>
+          {% endif %}
+          {% else %}
+          <p class="table-holder meta">Open for booking</p>
+          {% endif %}
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    {% if my_booking %}
+    <div class="panel">
+      <p class="meta">You hold <strong>{{ my_booking.label }}</strong> on this night. Cancel it above if you want to move to another table.</p>
+    </div>
+    {% elif free_tables %}
+    <section class="panel" id="book" aria-labelledby="book-title">
+      <div class="panel-head">
+        <div>
+          <h2 id="book-title">Reserve a table</h2>
+          <p class="panel-hint">{{ free_tables|length }} table{{ '' if free_tables|length == 1 else 's' }} free for {{ selected.date|short_date }}.</p>
+        </div>
+      </div>
+      <form method="post" action="/club-nights/{{ selected.id }}/book" class="form"
+            data-busy data-busy-label="Booking…">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="form-row">
+          <div class="field{% if errors.form %} field--invalid{% endif %}">
+            <label for="book-table">Table</label>
+            <select id="book-table" name="table_id" required>
+              {% for table in free_tables %}
+              <option value="{{ table.id }}">{{ table.label }} · seats {{ table.capacity }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="field{% if errors.army_list_id %} field--invalid{% endif %}">
+            <label for="book-list">Army list <span class="meta">(optional)</span></label>
+            <select id="book-list" name="army_list_id">
+              <option value="">No army list</option>
+              {% for army_list in my_lists %}
+              <option value="{{ army_list.id }}" {% if values.army_list_id == army_list.id|string %}selected{% endif %}>{{ army_list.name }} · {{ army_list.total_points }}/{{ army_list.points_limit }} pts</option>
+              {% endfor %}
+            </select>
+            {% if errors.army_list_id %}<p class="field-error">{{ errors.army_list_id }}</p>{% endif %}
+          </div>
+        </div>
+        <div class="field">
+          <label for="book-notes">Note <span class="meta">(optional)</span></label>
+          <input id="book-notes" name="notes" type="text" value="{{ values.notes }}" maxlength="200"
+                 placeholder="Opponent, scenario or arrival time">
+        </div>
+        <div class="panel-foot">
+          <span>One table per member, per night.</span>
+          <button class="btn btn-primary" type="submit">Book table</button>
+        </div>
+      </form>
+    </section>
+    {% else %}
+    <div class="panel">
+      <p class="meta">All {{ tables|length }} tables are booked for this night. Ask the organiser about a waitlist for the next one.</p>
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="empty-state">
+      <p class="empty-title">No club nights scheduled yet</p>
+      <p class="empty-copy">The organiser publishes the next block of club nights after each season finale.</p>
+      <a class="btn btn-primary" href="/campaign">Claim territory while you wait</a>
+    </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

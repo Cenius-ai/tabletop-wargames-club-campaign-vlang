@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Army lists{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div class="page-head-text">
+    <p class="eyebrow">Club army lists</p>
+    <h1>Army lists by faction</h1>
+    <p class="lede">{{ list_count }} lists registered for the season. Every list is scored in points against its own limit — the server refuses any unit that would push a list over.</p>
+  </div>
+  <div class="page-head-actions">
+    <a class="btn btn-primary" href="#new-list">New army list</a>
+  </div>
+</header>
+
+<div class="panes">
+  <aside class="pane pane-list" aria-label="Club army lists">
+    <h2 class="pane-title"><span>Club lists</span><span>{{ list_count }}</span></h2>
+    {% for group in groups %}
+    <div class="group-label">
+      <span class="chip fc-{{ group.slug }}">{{ group.name }}</span>
+      <span class="list-meta">{{ group.lists|length }} list{{ '' if group.lists|length == 1 else 's' }}</span>
+    </div>
+    <ul class="list">
+      {% for item in group.lists %}
+      <li class="list-row{% if item.owner_id == user.id %} is-selected{% endif %}">
+        <a class="list-link" href="/army-lists/{{ item.id }}">
+          <span class="list-name">{{ item.name }}</span>
+          <span class="list-meta">{{ item.owner_name }} · {{ item.unit_count }} unit{{ '' if item.unit_count == 1 else 's' }}</span>
+        </a>
+        <span class="list-points">{{ item.total_points|points }}<span class="slash">/</span>{{ item.points_limit|points }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <div class="empty-state">
+      <p class="empty-title">No lists registered</p>
+      <p class="empty-copy">The club has no army lists for this season yet. Be the first — build one with the form beside this panel.</p>
+      <a class="btn btn-primary" href="#new-list">Build your first list</a>
+    </div>
+    {% endfor %}
+  </aside>
+
+  <section class="pane pane-detail">
+    <section class="panel" id="new-list" aria-labelledby="new-list-title">
+      <div class="panel-head">
+        <div>
+          <h2 id="new-list-title">New army list</h2>
+          <p class="panel-hint">Lists are visible to the whole club; only you and the organiser can change yours.</p>
+        </div>
+      </div>
+      {% if errors %}
+      <div class="alert alert--error" role="alert">
+        {% for field, message in errors.items() %}{{ message }}{% if not loop.last %} {% endif %}{% endfor %}
+      </div>
+      {% endif %}
+      <form method="post" action="/army-lists" class="form" data-busy data-busy-label="Creating…">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="field{% if errors.name %} field--invalid{% endif %}">
+          <label for="list-name">List name</label>
+          <input id="list-name" name="name" type="text" value="{{ values.name }}" maxlength="80"
+                 placeholder="Ironvale 1000" required autocomplete="off"
+                 {% if errors.name %}aria-invalid="true" aria-describedby="list-name-error"{% endif %}>
+          {% if errors.name %}<p class="field-error" id="list-name-error">{{ errors.name }}</p>{% endif %}
+        </div>
+        <div class="form-row">
+          <div class="field{% if errors.faction %} field--invalid{% endif %}">
+            <label for="list-faction">Faction</label>
+            <select id="list-faction" name="faction" required>
+              {% for faction in factions %}
+              <option value="{{ faction.slug }}" {% if values.faction == faction.slug %}selected{% endif %}>{{ faction.name }}</option>
+              {% endfor %}
+            </select>
+            {% if errors.faction %}<p class="field-error">{{ errors.faction }}</p>{% endif %}
+          </div>
+          <div class="field{% if errors.points_limit %} field--invalid{% endif %}">
+            <label for="list-limit">Points limit</label>
+            <input id="list-limit" name="points_limit" type="number" value="{{ values.points_limit }}"
+                   min="50" max="10000" step="5" inputmode="numeric" required
+                   {% if errors.points_limit %}aria-invalid="true" aria-describedby="list-limit-error"{% endif %}>
+            {% if errors.points_limit %}<p class="field-error" id="list-limit-error">{{ errors.points_limit }}</p>{% endif %}
+          </div>
+        </div>
+        <div class="field{% if errors.notes %} field--invalid{% endif %}">
+          <label for="list-notes">Notes <span class="meta">(optional)</span></label>
+          <textarea id="list-notes" name="notes" maxlength="300" placeholder="What is this list built to do?">{{ values.notes }}</textarea>
+          {% if errors.notes %}<p class="field-error">{{ errors.notes }}</p>{% endif %}
+        </div>
+        <div class="panel-foot">
+          <span>Points are enforced by the server, not just the form.</span>
+          <button class="btn btn-primary" type="submit">Create army list</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel" aria-labelledby="how-title">
+      <div class="panel-head">
+        <div>
+          <h2 id="how-title">How a list is scored</h2>
+          <p class="panel-hint">Three steps, no dice required.</p>
+        </div>
+      </div>
+      <ol class="steps">
+        <li>Choose the faction and set the points limit your club night is playing to.</li>
+        <li>Add each unit with its points cost per model and how many models you field.</li>
+        <li>Watch the running total. Anything that would push past the limit is rejected with the total it would have reached.</li>
+      </ol>
+    </section>
+  </section>
+</div>
+{% endblock %}

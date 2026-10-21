@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div class="page-head-text">
+    <p class="eyebrow">
+      {% if user.role == 'organiser' %}Organiser{% else %}Member{% endif %}{% if faction %} · {{ faction.name }}{% endif %} · Season of the Hollow Gate
+    </p>
+    <h1>{{ user.display_name }}</h1>
+    <p class="lede">{% if faction %}{{ faction.motto }}{% else %}Pick a faction at registration to claim territory for the club campaign.{% endif %}</p>
+  </div>
+  <div class="page-head-actions">
+    <a class="btn" href="/campaign">Open the campaign map</a>
+    <a class="btn btn-primary" href="/army-lists#new-list">New army list</a>
+  </div>
+</header>
+
+<div class="stat-row stagger">
+  <div class="stat">
+    <span class="stat-label">Army lists</span>
+    <span class="stat-value">{{ my_lists|length }}</span>
+    <span class="stat-meta">{{ committed_points|points }} of {{ points_capacity|points }} pts committed</span>
+  </div>
+  <div class="stat">
+    <span class="stat-label">{{ faction.name if faction else 'Faction' }} territory</span>
+    <span class="stat-value">{{ held_territories }}</span>
+    <span class="stat-meta">of 24 territories held</span>
+  </div>
+  <div class="stat">
+    <span class="stat-label">Still claimable</span>
+    <span class="stat-value">{{ claimable_territories }}</span>
+    <span class="stat-meta">undefended territories</span>
+  </div>
+  <div class="stat">
+    <span class="stat-label">Upcoming bookings</span>
+    <span class="stat-value">{{ bookings|length }}</span>
+    <span class="stat-meta">tables held at club nights</span>
+  </div>
+</div>
+
+<div class="grid-2">
+  <section class="panel" aria-labelledby="my-lists-title">
+    <div class="panel-head">
+      <div>
+        <h2 id="my-lists-title">My army lists</h2>
+        <p class="panel-hint">Points totals update as you add units.</p>
+      </div>
+      <a class="btn btn-sm" href="/army-lists">All club lists</a>
+    </div>
+    {% if my_lists %}
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th scope="col">List</th>
+            <th scope="col">Faction</th>
+            <th scope="col" class="num">Units</th>
+            <th scope="col" class="num">Points</th>
+            <th scope="col">Used</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in my_lists %}
+          <tr>
+            <td><a href="/army-lists/{{ item.id }}">{{ item.name }}</a></td>
+            <td><span class="chip fc-{{ item.faction_slug }}">{{ item.faction_name }}</span></td>
+            <td class="num">{{ item.unit_count }}</td>
+            <td class="num">{{ item.total_points|points }} / {{ item.points_limit|points }}</td>
+            <td class="cell-meter">
+              <progress class="meter{% if item.total_points > item.points_limit %} is-over{% elif item.total_points|percent(item.points_limit) >= 90 %} is-warn{% endif %}"
+                        value="{{ item.total_points }}" max="{{ item.points_limit }}">{{ item.total_points|percent(item.points_limit) }}%</progress>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <p class="empty-title">No army lists yet</p>
+      <p class="empty-copy">Create your first army list: choose a faction, set a points limit, then add units until you are close to the cap.</p>
+      <a class="btn btn-primary" href="/army-lists#new-list">Create your first army list</a>
+    </div>
+    {% endif %}
+  </section>
+
+  <section class="panel" aria-labelledby="standing-title">
+    <div class="panel-head">
+      <div>
+        <h2 id="standing-title">Campaign standing</h2>
+        <p class="panel-hint">Territory control for the season.</p>
+      </div>
+    </div>
+    {% if faction %}
+    <div class="points-head">
+      <a class="points-block points-link" href="/campaign">
+        <span class="stat-label">Held by the {{ faction.name }}</span>
+        <span class="points-value">{{ held_territories }}<span>of 24</span></span>
+      </a>
+      <a class="points-block points-link" href="/campaign">
+        <span class="stat-label">Still claimable</span>
+        <span class="points-value">{{ claimable_territories }}<span>tiles</span></span>
+      </a>
+    </div>
+    <progress class="meter meter--lg" value="{{ held_territories }}" max="24">{{ held_territories }}</progress>
+    <p class="panel-hint">{{ faction.motto }}</p>
+    <div class="panel-foot">
+      <span>{{ claimable_territories }} undefended territories on the map</span>
+      <a class="btn btn-sm" href="/campaign">Claim territory</a>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <p class="empty-title">No faction chosen</p>
+      <p class="empty-copy">You need a faction before you can claim a territory. Ask the organiser to assign you one.</p>
+      <a class="btn" href="/campaign">Browse the map</a>
+    </div>
+    {% endif %}
+  </section>
+</div>
+
+<div class="grid-2">
+  <section class="panel" aria-labelledby="bookings-title">
+    <div class="panel-head">
+      <div>
+        <h2 id="bookings-title">Upcoming bookings</h2>
+        <p class="panel-hint">Tables you hold at the next club nights.</p>
+      </div>
+      <a class="btn btn-sm" href="/club-nights">Club nights</a>
+    </div>
+    {% if bookings %}
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th scope="col">Night</th>
+            <th scope="col">Table</th>
+            <th scope="col">Army list</th>
+            <th scope="col" class="col-actions"><span class="sr-only">Cancel</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for booking in bookings %}
+          <tr>
+            <td>
+              <a href="/club-nights?night={{ booking.night_id }}">{{ booking.date|short_date }}</a>
+              <span class="list-meta">{{ booking.title }}</span>
+            </td>
+            <td>{{ booking.table_label }}</td>
+            <td class="meta">{{ booking.army_list_name or '—' }}</td>
+            <td class="col-actions">
+              <form method="post" action="/bookings/{{ booking.id }}/cancel" class="inline-form"
+                    data-busy data-busy-label="Cancelling…">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <input type="hidden" name="return_to" value="/">
+                <button class="btn btn-quiet btn-sm" type="submit">Cancel</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <p class="empty-title">No tables booked yet</p>
+      <p class="empty-copy">Book a table for the next club night and attach the army list you plan to bring.</p>
+      <a class="btn btn-primary" href="/club-nights">Book a table</a>
+    </div>
+    {% endif %}
+  </section>
+
+  <section class="panel" aria-labelledby="next-night-title">
+    <div class="panel-head">
+      <div>
+        <h2 id="next-night-title">Next club night</h2>
+        <p class="panel-hint">The next evening on the calendar.</p>
+      </div>
+    </div>
+    {% if next_night %}
+    <div class="stack stack--tight">
+      <div class="points-block">
+        <span class="stat-label">{{ next_night.date|short_date }}</span>
+        <span class="points-value points-value--sm">{{ next_night.title }}</span>
+      </div>
+      <p class="meta">{{ next_night.location }}</p>
+      {% if next_night.notes %}<p class="lede">{{ next_night.notes }}</p>{% endif %}
+      <div class="panel-foot">
+        <span><strong>{{ next_night.table_count - next_night.booked_count }}</strong> of {{ next_night.table_count }} tables free</span>
+        <a class="btn btn-sm" href="/club-nights?night={{ next_night.id }}">See the tables</a>
+      </div>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <p class="empty-title">No club nights scheduled yet</p>
+      <p class="empty-copy">The organiser has not published the next club night. Check back after the AGM.</p>
+    </div>
+    {% endif %}
+  </section>
+</div>
+
+{% if totals %}
+<section class="panel" aria-labelledby="club-totals-title">
+  <div class="panel-head">
+    <div>
+      <h2 id="club-totals-title">Organiser view — club totals</h2>
+      <p class="panel-hint">Everything the club is currently running, across all members.</p>
+    </div>
+    <a class="btn btn-sm" href="/campaign">Arbitrate the map</a>
+  </div>
+  <div class="stat-row stagger">
+    <div class="stat">
+      <span class="stat-label">Members</span>
+      <span class="stat-value">{{ totals.members }}</span>
+      <span class="stat-meta">accounts in the club</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Army lists</span>
+      <span class="stat-value">{{ totals.lists }}</span>
+      <span class="stat-meta">registered for the campaign</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Undefended</span>
+      <span class="stat-value">{{ totals.undefended }}</span>
+      <span class="stat-meta">territories up for grabs</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Bookings ahead</span>
+      <span class="stat-value">{{ totals.bookings }}</span>
+      <span class="stat-meta">tables reserved at club nights</span>
+    </div>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

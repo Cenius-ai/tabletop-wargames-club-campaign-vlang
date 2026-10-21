@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% block title %}{{ army_list.name }}{% endblock %}
+{% block content %}
+{% set total_models = units|sum(attribute='qty') %}
+<header class="page-head">
+  <div class="page-head-text">
+    <p class="eyebrow">
+      <span class="chip fc-{{ army_list.faction_slug }}">{{ army_list.faction_name }}</span>
+      built by {{ army_list.owner_name }}
+    </p>
+    <h1>{{ army_list.name }}</h1>
+    <p class="lede">{{ army_list.notes or 'No notes on this list yet.' }}</p>
+  </div>
+  <div class="page-head-actions">
+    <a class="btn" href="/army-lists">All lists</a>
+    {% if can_manage %}
+    <details class="danger-zone">
+      <summary>Delete list</summary>
+      <form method="post" action="/army-lists/{{ army_list.id }}/delete" class="danger-form"
+            data-busy data-busy-label="Deleting…">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <p>This removes “{{ army_list.name }}” and its {{ units|length }} unit{{ '' if units|length == 1 else 's' }}. It cannot be undone.</p>
+        <button class="btn btn-danger btn-sm" type="submit">Yes, delete this list</button>
+      </form>
+    </details>
+    {% endif %}
+  </div>
+</header>
+
+<div class="panes">
+  <aside class="pane pane-list" aria-label="Your army lists">
+    <h2 class="pane-title"><span>Your lists</span><span>{{ navigator|length }}</span></h2>
+    <ul class="list">
+      {% for item in navigator %}
+      <li class="list-row{% if item.id == army_list.id %} is-selected{% endif %}">
+        <a class="list-link" href="/army-lists/{{ item.id }}"
+           {% if item.id == army_list.id %}aria-current="page"{% endif %}>
+          <span class="list-name">{{ item.name }}</span>
+          <span class="list-meta">{{ item.faction_name }} · {{ item.unit_count }} unit{{ '' if item.unit_count == 1 else 's' }}</span>
+        </a>
+        <span class="list-points">{{ item.total_points|points }}<span class="slash">/</span>{{ item.points_limit|points }}</span>
+      </li>
+      {% else %}
+      <li>
+        <div class="empty-state">
+          <p class="empty-title">You have no lists yet</p>
+          <p class="empty-copy">Create one from the army list page and it will appear here.</p>
+          <a class="btn btn-sm btn-primary" href="/army-lists#new-list">New army list</a>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+    <a class="btn btn-block btn-ghost" href="/army-lists">Browse all club lists</a>
+  </aside>
+
+  <section class="pane pane-detail">
+    <div class="points-card">
+      <div class="points-head">
+        <div class="points-block">
+          <span class="stat-label">Points used</span>
+          <span class="points-value">{{ total_points|points }}<span>/ {{ army_list.points_limit|points }}</span></span>
+        </div>
+        <div class="points-block">
+          <span class="stat-label">Remaining</span>
+          <span class="points-value">{{ remaining|points }}</span>
+        </div>
+        <div class="points-block">
+          <span class="stat-label">Units</span>
+          <span class="points-value">{{ units|length }}</span>
+        </div>
+        <div class="points-block">
+          <span class="stat-label">Models</span>
+          <span class="points-value">{{ total_models }}</span>
+        </div>
+      </div>
+      <progress class="meter meter--lg{% if over_limit %} is-over{% elif near_limit %} is-warn{% endif %}"
+                value="{{ total_points if total_points <= army_list.points_limit else army_list.points_limit }}"
+                max="{{ army_list.points_limit }}">{{ total_points|percent(army_list.points_limit) }}%</progress>
+      <p class="points-note{% if over_limit %} is-over{% elif near_limit %} is-warn{% endif %}">
+        {% if over_limit %}
+        Over the limit by {{ (total_points - army_list.points_limit)|points }} pts — remove a unit to get back under.
+        {% elif near_limit %}
+        Only {{ remaining|points }} pts left of the {{ army_list.points_limit|points }} pt limit.
+        {% else %}
+        {{ remaining|points }} pts still to spend of {{ army_list.points_limit|points }}.
+        {% endif %}
+      </p>
+    </div>
+
+    <section class="panel" aria-labelledby="units-title">
+      <div class="panel-head">
+        <div>
+          <h2 id="units-title">Units</h2>
+          <p class="panel-hint">Points are per model; the unit subtotal multiplies by model count.</p>
+        </div>
+        <span class="chip">{{ units|length }} unit{{ '' if units|length == 1 else 's' }}</span>
+      </div>
+      {% if units %}
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th scope="col">Unit</th>
+              <th scope="col">Kind</th>
+              <th scope="col" class="num">Pts / model</th>
+              <th scope="col" class="num">Models</th>
+              <th scope="col" class="num">Subtotal</th>
+              {% if can_manage %}<th scope="col" class="col-actions"><span class="sr-only">Remove</span></th>{% endif %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for unit in units %}
+            <tr>
+              <td>{{ unit.name }}</td>
+              <td class="meta">{{ unit.kind }}</td>
+              <td class="num">{{ unit.points|points }}</td>
+              <td class="num">{{ unit.qty }}</td>
+              <td class="num">{{ unit.subtotal|points }}</td>
+              {% if can_manage %}
+              <td class="col-actions">
+                <form method="post" action="/army-lists/{{ army_list.id }}/units/{{ unit.id }}/delete"
+                      class="inline-form" data-busy data-busy-label="Removing…">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                  <button class="btn btn-quiet btn-sm" type="submit"
+                          aria-label="Remove {{ unit.name }} from {{ army_list.name }}">Remove</button>
+                </form>
+              </td>
+              {% endif %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <p class="empty-title">No units yet</p>
+        <p class="empty-copy">Add your first unit — you have the full {{ army_list.points_limit|points }} pts budget available.</p>
+        {% if can_manage %}<a class="btn btn-sm btn-primary" href="#add-unit">Add your first unit</a>{% endif %}
+      </div>
+      {% endif %}
+    </section>
+
+    {% if can_manage %}
+    <section class="panel" id="add-unit" aria-labelledby="add-unit-title">
+      <div class="panel-head">
+        <div>
+          <h2 id="add-unit-title">Add a unit</h2>
+          <p class="panel-hint">{{ remaining|points }} pts remaining on this list.</p>
+        </div>
+      </div>
+      {% if errors %}
+      <div class="alert alert--error" role="alert">
+        {% for field, message in errors.items() %}{{ message }}{% if not loop.last %} {% endif %}{% endfor %}
+      </div>
+      {% endif %}
+      <form method="post" action="/army-lists/{{ army_list.id }}/units" class="form"
+            data-busy data-busy-label="Adding unit…">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="field{% if errors.name %} field--invalid{% endif %}">
+          <label for="unit-name">Unit name</label>
+          <input id="unit-name" name="name" type="text" value="{{ values.name }}" maxlength="60"
+                 placeholder="Ironvale Halberdiers" required autocomplete="off"
+                 {% if errors.name %}aria-invalid="true" aria-describedby="unit-name-error"{% endif %}>
+          {% if errors.name %}<p class="field-error" id="unit-name-error">{{ errors.name }}</p>{% endif %}
+        </div>
+        <div class="form-row">
+          <div class="field{% if errors.kind %} field--invalid{% endif %}">
+            <label for="unit-kind">Kind</label>
+            <select id="unit-kind" name="kind" required>
+              {% for kind in unit_kinds %}
+              <option value="{{ kind }}" {% if values.kind == kind %}selected{% endif %}>{{ kind }}</option>
+              {% endfor %}
+            </select>
+            {% if errors.kind %}<p class="field-error">{{ errors.kind }}</p>{% endif %}
+          </div>
+          <div class="field{% if errors.points %} field--invalid{% endif %}">
+            <label for="unit-points">Points per model</label>
+            <input id="unit-points" name="points" type="number" value="{{ values.points }}"
+                   min="0" max="2000" step="1" inputmode="numeric" required
+                   {% if errors.points %}aria-invalid="true" aria-describedby="unit-points-error"{% endif %}>
+            {% if errors.points %}<p class="field-error" id="unit-points-error">{{ errors.points }}</p>{% endif %}
+          </div>
+          <div class="field{% if errors.qty %} field--invalid{% endif %}">
+            <label for="unit-qty">Models</label>
+            <input id="unit-qty" name="qty" type="number" value="{{ values.qty }}"
+                   min="1" max="100" step="1" inputmode="numeric" required
+                   {% if errors.qty %}aria-invalid="true" aria-describedby="unit-qty-error"{% endif %}>
+            {% if errors.qty %}<p class="field-error" id="unit-qty-error">{{ errors.qty }}</p>{% endif %}
+          </div>
+        </div>
+        <div class="panel-foot">
+          <span>Subtotal = points per model × models.</span>
+          <button class="btn btn-primary" type="submit">Add unit</button>
+        </div>
+      </form>
+    </section>
+    {% else %}
+    <div class="panel">
+      <p class="meta">This list belongs to {{ army_list.owner_name }} — it is read-only for you.</p>
+    </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}
