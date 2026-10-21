@@ -1,0 +1,16 @@
+# Local database files (created and seeded on first boot)
+campaign.db
+campaign.db-wal
+campaign.db-shm
+*.db
+*.db-wal
+*.db-shm
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+
+# Local environment overrides (no .env is required to run the app)
+.env

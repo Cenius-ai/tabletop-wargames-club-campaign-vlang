@@ -1,0 +1,9 @@
+# Runtime dependencies for the Tabletop Wargames Club Campaign app.
+# Starlette + Uvicorn only: no FastAPI, no ORM, no external database.
+starlette==1.3.1
+uvicorn==0.30.6
+jinja2==3.1.4
+
+# Test / verification toolchain (the project test suite runs with `python3 -m pytest`).
+pytest==8.3.3
+httpx==0.27.2
