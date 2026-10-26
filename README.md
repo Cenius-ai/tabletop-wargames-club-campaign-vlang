@@ -40,7 +40,7 @@ See [`INSTALL.md`](INSTALL.md) for full setup and usage instructions.
 
 ## Architecture
 
-Everything runs out of the box: a V codebase (59 files). Run `./install.sh` once to install packages and populate demo data — the app is ready to use immediately after. Top-level layout: `app/`, `scripts/`, `tests/`. Full setup details: [`INSTALL.md`](INSTALL.md).
+Everything runs out of the box: a V codebase (48 files). Run `./install.sh` once to install packages and populate demo data — the app is ready to use immediately after. Top-level layout: `app/`, `scripts/`, `tests/`. Full setup details: [`INSTALL.md`](INSTALL.md).
 
 ## Usage guide
 
